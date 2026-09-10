@@ -1,0 +1,17 @@
+# Terraform
+**/.terraform/
+*.tfstate
+*.tfstate.*
+crash.log
+crash.*.log
+*.tfvars
+*.tfvars.json
+# Environment tfvars ARE meant to be committed (reviewable, non-secret per-env config) —
+# unlike an ad-hoc local terraform.tfvars, which stays ignored by the *.tfvars rule above.
+!**/envs/*.tfvars
+override.tf
+override.tf.json
+*_override.tf
+*_override.tf.json
+.terraformrc
+terraform.rc

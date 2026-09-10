@@ -1,0 +1,66 @@
+# Test-only nginx deployment, exposed via a Network Load Balancer, to prove the
+# internet -> NLB (public subnet) -> pod (private subnet) path actually works.
+#
+# Deliberately kept OUTSIDE Terraform state: Terraform provisions infra + add-ons
+# (the cluster, node groups, the AWS Load Balancer Controller that makes this
+# possible); application workloads are applied separately (kubectl/GitOps), matching
+# the separation of concerns in docs/production-eks-checklist.md Section 13.
+#
+# Prerequisites:
+#   1. terraform apply (with enable_aws_load_balancer_controller = true)
+#   2. aws eks update-kubeconfig --name <cluster_name> --region <aws_region>
+#
+# Usage:
+#   kubectl apply -f k8s-manifests/nginx-test.yaml
+#   kubectl get svc nginx-test -w        # wait for EXTERNAL-IP / hostname to populate
+#   curl http://<that hostname>          # NLB DNS name takes a few minutes to resolve
+#
+# Cleanup (delete this BEFORE `terraform destroy` — the controller that owns the NLB
+# needs to still be running to actually deprovision it):
+#   kubectl delete -f k8s-manifests/nginx-test.yaml
+
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: nginx-test
+  labels:
+    app: nginx-test
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: nginx-test
+  template:
+    metadata:
+      labels:
+        app: nginx-test
+    spec:
+      containers:
+        - name: nginx
+          image: nginx:1.27-alpine
+          ports:
+            - containerPort: 80
+          resources:
+            requests:
+              cpu: 50m
+              memory: 64Mi
+            limits:
+              cpu: 200m
+              memory: 128Mi
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: nginx-test
+  annotations:
+    service.beta.kubernetes.io/aws-load-balancer-type: "external"
+    service.beta.kubernetes.io/aws-load-balancer-nlb-target-type: "ip"
+    service.beta.kubernetes.io/aws-load-balancer-scheme: "internet-facing"
+spec:
+  type: LoadBalancer
+  selector:
+    app: nginx-test
+  ports:
+    - port: 80
+      targetPort: 80
+      protocol: TCP
