@@ -39,12 +39,14 @@ cluster_log_retention_days               = 7
 kms_key_deletion_window_in_days          = 7
 enable_cluster_creator_admin_permissions = true
 
-# One small, Spot-only node group — cheapest way to get a working cluster. No taints,
-# so everything (including system pods) schedules here; fine for a disposable sandbox.
+# One small On-Demand node group — no Spot interruption risk. Graviton (ARM) for
+# lower cost than the equivalent x86 size. No taints, so everything (including system
+# pods) schedules here; fine for a disposable sandbox.
 node_groups = {
   general = {
-    instance_types = ["t3.small", "t3a.small"] # 2 types improves Spot availability
-    capacity_type  = "SPOT"
+    ami_type       = "AL2023_ARM_64_STANDARD"
+    instance_types = ["t4g.small"] # 2 vCPU, 2 GiB RAM
+    capacity_type  = "ON_DEMAND"
     min_size       = 1
     max_size       = 2
     desired_size   = 1

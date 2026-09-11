@@ -34,14 +34,15 @@ cluster_log_retention_days               = 90
 kms_key_deletion_window_in_days          = 30
 enable_cluster_creator_admin_permissions = true
 
-# Two node groups: a small On-Demand "system" pool (tainted so only pods that
-# tolerate CriticalAddonsOnly land there — cluster-critical controllers, autoscaler,
-# CoreDNS, CNI, etc.) and a larger Spot "general" pool for regular workloads. This is
-# the On-Demand/Spot mix the checklist calls for — Spot for fault-tolerant workloads,
-# On-Demand for anything the cluster itself depends on.
+# Two node groups, both On-Demand and both t4g.medium (2 vCPU, 4 GiB RAM, Graviton/ARM)
+# — deliberately capped at one small, cheap instance size rather than scaling up to
+# larger x86 types; scale out (more nodes) instead of up. "system" is tainted so only
+# pods that tolerate CriticalAddonsOnly land there — cluster-critical controllers,
+# autoscaler, CoreDNS, CNI, etc. "general" is for regular workloads.
 node_groups = {
   system = {
-    instance_types = ["m5.large"]
+    ami_type       = "AL2023_ARM_64_STANDARD"
+    instance_types = ["t4g.medium"]
     capacity_type  = "ON_DEMAND"
     min_size       = 2
     max_size       = 3
@@ -57,8 +58,9 @@ node_groups = {
     }
   }
   general = {
-    instance_types = ["m5.large", "m5a.large", "m5n.large"] # 3 types spread across Spot capacity pools
-    capacity_type  = "SPOT"
+    ami_type       = "AL2023_ARM_64_STANDARD"
+    instance_types = ["t4g.medium"]
+    capacity_type  = "ON_DEMAND"
     min_size       = 2
     max_size       = 6
     desired_size   = 3

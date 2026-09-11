@@ -10,7 +10,8 @@ aws-eks/
 ├── docs/
 │   ├── production-eks-checklist.md      # master plan — 13 sections, what's built vs. not
 │   ├── prd-networking-cost-analysis.md  # NAT Gateway / VPC endpoint cost breakdown
-│   └── terraform-configs-explaination.md# walkthrough of the subnet CIDR math in locals.tf
+│   ├── terraform-configs-explaination.md# walkthrough of the subnet CIDR math in locals.tf
+│   └── eks-for-kubeadm-users.md         # what's different if you're coming from a kubeadm cluster
 ├── terraform/
 │   ├── versions.tf                  # provider requirements + aws/kubernetes/helm provider blocks
 │   ├── variables.tf                 # every input variable, with validation rules
