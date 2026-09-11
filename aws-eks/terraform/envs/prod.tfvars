@@ -1,9 +1,7 @@
 # Production environment — full HA, private-only API, everything the
-# production-eks-checklist.md Section 1/2 items call for. Use with the "prod"
-# Terraform workspace:
+# production-eks-checklist.md Section 1/2 items call for. Use with envs/prod.backend.hcl:
 #
-#   terraform workspace new prod   (first time only)
-#   terraform workspace select prod
+#   terraform init -backend-config=envs/prod.backend.hcl
 #   terraform plan  -var-file=envs/prod.tfvars
 #   terraform apply -var-file=envs/prod.tfvars
 #
@@ -23,7 +21,7 @@ enable_vpc_endpoints    = true
 enable_flow_logs        = true
 flow_log_retention_days = 90
 
-kubernetes_version              = "1.31"
+kubernetes_version              = "1.36"
 cluster_endpoint_private_access = true
 cluster_endpoint_public_access  = false # private-only — reach the API via VPN/bastion/Direct Connect, not the internet
 # Not used while cluster_endpoint_public_access = false. If you ever do need temporary

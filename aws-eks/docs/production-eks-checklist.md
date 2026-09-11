@@ -179,8 +179,9 @@ Karpenter is an open-source, Kubernetes-native node autoscaler (originally built
 ## Actual Terraform Layout (as built)
 
 A single root module (not split into `modules/` yet — that's a fine next step once
-the config grows unwieldy), with per-environment values in `envs/*.tfvars` applied
-against isolated state via `terraform workspace select <name>`:
+the config grows unwieldy), with per-environment values in `envs/*.tfvars` and a
+matching per-environment S3 backend key in `envs/*.backend.hcl` — no Terraform
+workspaces; the backend key is what isolates state per environment:
 
 ```
 aws-eks/
@@ -191,7 +192,7 @@ aws-eks/
 ├── k8s-manifests/
 │   └── nginx-test.yaml                  # test workload, applied via kubectl — not Terraform (Section 13)
 └── terraform/
-    ├── versions.tf                      # terraform + aws/kubernetes/helm provider blocks
+    ├── versions.tf                      # terraform + backend "s3" (partial) + aws/kubernetes/helm provider blocks
     ├── variables.tf                     # every input, with validation blocks
     ├── locals.tf                        # common_tags, subnet CIDR math
     ├── vpc.tf                           # module "vpc" + VPC endpoints (Section 1)
@@ -200,23 +201,35 @@ aws-eks/
     ├── addons.tf                        # AWS Load Balancer Controller IRSA + Helm release (Section 4)
     ├── outputs.tf
     ├── terraform.tfvars.example         # quick-start template (gitignored terraform.tfvars, single env)
+    ├── iam/
+    │   ├── terraform-deployer-policy.json   # IAM policy for the human/CI user running plan/apply/destroy (Section 6)
+    │   └── README.md                        # what it covers, how to attach it, known constraints
     └── envs/
-        ├── test.tfvars                  # cost-minimized sandbox — workspace "test"
-        └── prod.tfvars                  # full HA/security posture — workspace "prod"
+        ├── test.tfvars                  # cost-minimized sandbox
+        ├── test.backend.hcl             # S3 backend for test — key "test/eks.tfstate" (Section 12)
+        ├── prod.tfvars                  # full HA/security posture
+        └── prod.backend.hcl             # S3 backend for prod — key "prod/eks.tfstate" (Section 12)
 ```
 
 Usage:
 
 ```bash
-terraform workspace new test   # or prod — one-time
-terraform workspace select test
+terraform init -backend-config=envs/test.backend.hcl
 terraform plan  -var-file=envs/test.tfvars
 terraform apply -var-file=envs/test.tfvars
 ```
 
+To switch environments, re-run init against the other backend config (Terraform will
+offer to migrate/copy state — decline, since each env's state lives at its own key):
+
+```bash
+terraform init -backend-config=envs/prod.backend.hcl -reconfigure
+terraform plan  -var-file=envs/prod.tfvars
+```
+
 Original larger-scale sketch, for when this outgrows a single root module (extract
 `vpc.tf`/`main.tf` into `modules/vpc`, `modules/eks-cluster`, etc., with each `envs/<name>/`
-becoming its own root module + backend config instead of a workspace):
+becoming its own root module + backend config):
 
 ```
 aws-eks/terraform/

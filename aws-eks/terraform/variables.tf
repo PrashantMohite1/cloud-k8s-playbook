@@ -76,7 +76,7 @@ variable "flow_log_retention_days" {
 variable "kubernetes_version" {
   description = "Kubernetes version for the EKS control plane — pin explicitly, never leave blank/\"latest\""
   type        = string
-  default     = "1.31"
+  default     = "1.36"
 }
 
 variable "cluster_endpoint_private_access" {

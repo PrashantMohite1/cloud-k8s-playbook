@@ -1,6 +1,18 @@
 terraform {
   required_version = ">= 1.7.0"
 
+  # Remote state — see production-eks-checklist.md Section 12.
+  # Partial config: bucket/key/region can't come from variables (the backend is resolved
+  # before the rest of the config is evaluated), so they're supplied at `terraform init`
+  # time via -backend-config=envs/<env>.backend.hcl — one file per environment (same
+  # bucket, key prefixed by env name: test/eks.tfstate, prod/eks.tfstate). This key
+  # prefix is what isolates state per environment, so the default workspace is used
+  # throughout — no `terraform workspace select`, which would otherwise double-nest
+  # state under `env:/<workspace>/<key>` on top of the already-env-scoped key.
+  backend "s3" {
+    encrypt = true
+  }
+
   required_providers {
     aws = {
       source  = "hashicorp/aws"

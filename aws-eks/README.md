@@ -13,7 +13,7 @@ aws-eks/
 │   ├── terraform-configs-explaination.md# walkthrough of the subnet CIDR math in locals.tf
 │   └── eks-for-kubeadm-users.md         # what's different if you're coming from a kubeadm cluster
 ├── terraform/
-│   ├── versions.tf                  # provider requirements + aws/kubernetes/helm provider blocks
+│   ├── versions.tf                  # backend "s3" (partial) + provider requirements + aws/kubernetes/helm provider blocks
 │   ├── variables.tf                 # every input variable, with validation rules
 │   ├── locals.tf                    # common tags + subnet CIDR math
 │   ├── vpc.tf                       # VPC, subnets, VPC endpoints
@@ -22,8 +22,10 @@ aws-eks/
 │   ├── addons.tf                    # AWS Load Balancer Controller (IRSA role + Helm release)
 │   ├── outputs.tf                   # exported values (cluster endpoint, VPC id, etc.)
 │   └── envs/
-│       ├── test.tfvars                  # cheap sandbox config — workspace "test"
-│       └── prod.tfvars                  # full HA/security config — workspace "prod"
+│       ├── test.tfvars                  # cheap sandbox config
+│       ├── test.backend.hcl             # S3 backend for test — key "test/eks.tfstate"
+│       ├── prod.tfvars                  # full HA/security config
+│       └── prod.backend.hcl             # S3 backend for prod — key "prod/eks.tfstate"
 └── k8s-manifests/
     └── nginx-test.yaml              # sample app to prove internet → NLB → pod works
 ```
@@ -31,24 +33,38 @@ aws-eks/
 ## How it fits together
 
 - **`terraform/`** is one flat root module (no `modules/` subdir yet — fine at this size).
-- **`envs/*.tfvars`** + Terraform workspaces (`test`, `prod`) give two isolated environments from the same config — see `production-eks-checklist.md` for what each one turns on/off.
+- **`envs/*.tfvars`** + a matching **`envs/*.backend.hcl`** per environment give two isolated environments from the same config — no Terraform workspaces, the S3 backend key does the isolating. See `production-eks-checklist.md` for what each `.tfvars` turns on/off.
 - **`k8s-manifests/`** is applied with `kubectl`, not Terraform — Terraform's job stops at the cluster + add-ons; application workloads are separate on purpose.
 
 ## Getting started
 
 Read `docs/production-eks-checklist.md` first — it tracks what's actually built.
 
-## Quickstart — test workspace
+## Quickstart — test environment
+
+**Linux / macOS (bash)**
 
 ```bash
 cd terraform
-terraform init
-terraform workspace new test      # first time only; use "select" after that
+terraform init -backend-config=envs/test.backend.hcl
 terraform plan  -var-file=envs/test.tfvars
 terraform apply -var-file=envs/test.tfvars
 ```
 
+**Windows (PowerShell)**
+
+```powershell
+cd terraform
+terraform init -backend-config="envs/test.backend.hcl"
+terraform plan  -var-file="envs/test.tfvars"
+terraform apply -var-file="envs/test.tfvars"
+```
+
+> Quote the `-var-file` value in PowerShell (`-var-file="envs/test.tfvars"`). Unquoted, Windows PowerShell mis-parses `-var-file=envs/test.tfvars` as two arguments and terraform fails with `Error: Too many command line arguments`. Bash isn't affected.
+
 ## Try it — deploy nginx and hit it from the internet
+
+**Linux / macOS (bash)**
 
 ```bash
 aws eks update-kubeconfig --name eks-test --region us-east-1
@@ -61,4 +77,20 @@ curl http://<EXTERNAL-IP-from-above>
 # cleanup, in order:
 kubectl delete -f k8s-manifests/nginx-test.yaml
 cd terraform && terraform destroy -var-file=envs/test.tfvars
+```
+
+**Windows (PowerShell)**
+
+```powershell
+aws eks update-kubeconfig --name eks-test --region us-east-1
+
+kubectl apply -f k8s-manifests/nginx-test.yaml
+kubectl get svc nginx-test -w        # wait for EXTERNAL-IP / hostname to populate
+
+curl http://<EXTERNAL-IP-from-above>
+
+# cleanup, in order:
+kubectl delete -f k8s-manifests/nginx-test.yaml
+cd terraform
+terraform destroy -var-file="envs/test.tfvars"
 ```

@@ -64,4 +64,4 @@ Everything above is the minimum to get a working, reasonably secure cluster. If 
 
 ## 6. Just want to try it — jump to the quickstart
 
-If you'd rather see it running than keep reading, skip straight to the [aws-eks quickstart](../README.md#quickstart--test-workspace) — it walks through spinning up the test cluster and deploying nginx behind a real internet-facing load balancer.
+If you'd rather see it running than keep reading, skip straight to the [aws-eks quickstart](../README.md#quickstart--test-environment) — it walks through spinning up the test cluster and deploying nginx behind a real internet-facing load balancer.

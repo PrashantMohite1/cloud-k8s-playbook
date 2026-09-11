@@ -1,8 +1,7 @@
 # Test/sandbox environment — optimized to minimize hourly AWS spend while still
-# exercising the real module code path. Use with the "test" Terraform workspace:
+# exercising the real module code path. Use with envs/test.backend.hcl:
 #
-#   terraform workspace new test   (first time only)
-#   terraform workspace select test
+#   terraform init -backend-config=envs/test.backend.hcl
 #   terraform plan  -var-file=envs/test.tfvars
 #   terraform apply -var-file=envs/test.tfvars
 #
@@ -27,7 +26,7 @@ enable_vpc_endpoints    = false # save the interface-endpoint hourly cost; ECR/S
 enable_flow_logs        = false # save CloudWatch ingestion/storage cost
 flow_log_retention_days = 7
 
-kubernetes_version              = "1.31"
+kubernetes_version              = "1.36"
 cluster_endpoint_private_access = true
 cluster_endpoint_public_access  = true # convenience — reach the API from your laptop without a bastion/VPN
 # Required since cluster_endpoint_public_access = true — your own IP as a /32 (never 0.0.0.0/0).
